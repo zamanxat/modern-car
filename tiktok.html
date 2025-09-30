@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modern Cars TikTok</title>
+<link rel="shortcut icon" href="logo.jpeg" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000;
+  --white:#fff;
+  --muted: rgba(255,255,255,0.72);
+  --radius:14px;
+  --success: #25D366;
+  --error: #ff6b6b;
+  --whatsapp: #25D366;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%; font-family:Inter, system-ui, sans-serif; color:var(--white); background:var(--bg); overflow:hidden;}
+body{display:flex; flex-direction:column; justify-content:space-between;}
+canvas{position:fixed; inset:0; z-index:0;}
+.wrap{position:relative; z-index:2; max-width:980px; margin:0 auto; padding:40px 16px; display:flex; flex-direction:column; align-items:center; gap:24px;}
+.logo img{width:64px; height:64px; border-radius:12px; object-fit:cover;}
+.hero{text-align:center;}
+.hero .h1{font-size:34px; font-weight:800; background: linear-gradient(90deg, #fff, rgba(255,255,255,0.9)); -webkit-background-clip:text; color:transparent;}
+.hero .short{margin-top:6px; color:var(--muted); font-size:14px;}
+.cta-card{background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:14px; padding:20px; min-width:280px; display:flex; flex-direction:column; gap:12px; backdrop-filter: blur(6px);}
+.cta-title{font-weight:800; font-size:15px; text-align:center;}
+form{display:flex; flex-direction:column; gap:10px;}
+input{padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:white;}
+#submitBtn{margin-top:10px; padding:12px; border-radius:12px; font-weight:800; color:white; background:linear-gradient(90deg, rgba(37,211,102,0.13), rgba(255,255,255,0.01)); border:1px solid rgba(37,211,102,0.16); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition: all 0.3s ease;}
+#submitBtn:disabled{opacity:0.6; cursor:not-allowed;}
+#submitBtn.whatsapp-btn{background:linear-gradient(90deg, rgba(37,211,102,0.3), rgba(37,211,102,0.15)); border:1px solid rgba(37,211,102,0.4);}
+.pulse{width:12px; height:12px; border-radius:50%; background:#25D366; animation:pulse 1.6s infinite;}
+@keyframes pulse{0%{transform:scale(0.86);opacity:0.95}70%{transform:scale(1.45);opacity:0.5}100%{transform:scale(0.86);opacity:0.95}}
+footer{color:var(--muted); text-align:center; padding:12px; font-size:13px; z-index:2;}
+.success-msg{color:var(--success);}
+.error-msg{color:var(--error);}
+.debug-info {font-size: 11px; color: #666; margin-top: 10px; text-align: center;}
+.whatsapp-icon{width:18px; height:18px;}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<div class="wrap">
+  <div class="logo"><img src="logo.jpeg" alt="Modern Cars"></div>
+  <div class="hero">
+    <h1 class="h1">Modern Cars</h1>
+    <div class="short">Русификация на все виды китайских автомобилей</div>
+  </div>
+  <aside class="cta-card">
+    <div class="cta-title">Қосылыңыз</div>
+    <form id="leadForm">
+      <input id="name" name="name" type="text" placeholder="Есіміңіз" required maxlength="80">
+      <input id="phone" name="phone" type="tel" placeholder="+7 (___) ___-__-__" required>
+      <button type="submit" id="submitBtn"><span class="pulse"></span> Жіберу</button>
+      <div id="formMsg" style="font-size:13px;display:none;text-align:center;margin-top:6px;"></div>
+      <div id="debugInfo" class="debug-info"></div>
+    </form>
+  </aside>
+</div>
+<footer>© 2025 Modern Cars - все права защищены</footer>
+
+<script>
+// Google Apps Script Web App URL
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx-6hS8kBdywv2c4h0Y-8DN1wiiX4ZDrh5i8cdb2Ld7-F5ZOe7AalguFuuD6OEVt0DO/exec";
+
+// WhatsApp нөмірі (халықаралық форматта, + белгісіз)
+const WHATSAPP_NUMBER = "77011234567"; // Мысал: 77011234567 - бұл сіздің нөміріңізбен ауыстырыңыз
+
+const form = document.getElementById('leadForm');
+const submitBtn = document.getElementById('submitBtn');
+const msgEl = document.getElementById('formMsg');
+const debugEl = document.getElementById('debugInfo');
+
+// WhatsApp SVG иконкасы
+const whatsappIcon = `<svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.176-1.24-6.165-3.495-8.411"/>
+</svg>`;
+
+// Телефон нөміріне автоформаттау
+const phoneInput = document.getElementById('phone');
+phoneInput.addEventListener('input', function(e) {
+  let value = e.target.value.replace(/\D/g, '');
+  
+  // Егер +7 енгізілген болса, оны алып тастау
+  if (value.startsWith('7')) {
+    value = value.substring(1);
+  }
+  
+  let formattedValue = '+7 ';
+  if (value.length > 0) formattedValue += '(' + value.substring(0, 3);
+  if (value.length > 3) formattedValue += ') ' + value.substring(3, 6);
+  if (value.length > 6) formattedValue += '-' + value.substring(6, 8);
+  if (value.length > 8) formattedValue += '-' + value.substring(8, 10);
+  
+  e.target.value = formattedValue;
+});
+
+// No-CORS режимінде деректерді жіберу функциясы
+async function sendDataNoCors(name, phone) {
+  // No-CORS режимінде жіберу
+  try {
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors', // No-CORS режимі
+      body: JSON.stringify({name, phone}),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    // No-CORS режимінде response.ok әрқашан false болады, сондықтан біз тек жіберуді растаймыз
+    console.log('Деректер жіберілді (no-cors режимі)');
+    return { status: 'success', message: 'Деректер жіберілді' };
+  } catch (error) {
+    console.error('No-CORS қатесі:', error);
+    throw new Error('Деректер жіберілмеді');
+  }
+}
+
+// WhatsApp-қа бағыттау функциясы
+function redirectToWhatsApp(name, phone) {
+  // WhatsApp сілтемесін құру
+  const message = "";
+  const encodedMessage = encodeURIComponent(message);
+  const whatsappUrl = `https://chat.whatsapp.com/IQYwOkjSk0IC19qx7aPT1Z`;
+  
+  // Жаңа терезені ашу
+  window.open(whatsappUrl, '_blank');
+}
+
+// Форманы жіберу
+form.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById('name').value.trim();
+  const phoneRaw = document.getElementById('phone').value.trim();
+  const phoneDigits = phoneRaw.replace(/\D/g, '');
+  
+  // Хабарламаны тазарту
+  msgEl.style.display = 'none';
+  msgEl.className = '';
+  
+  // Валидация
+  if (!name) {
+    showMessage('Есімді енгізіңіз', 'error');
+    return;
+  }
+  
+  if (phoneDigits.length !== 11 || !phoneDigits.startsWith('7')) {
+    showMessage('Телефон нөмірі дұрыс емес', 'error');
+    return;
+  }
+
+  // Телефон нөмірін халықаралық форматтау
+  const phone = '+7' + phoneDigits.substring(1);
+  
+  // Жіберу түймесін өшіру
+  setSubmitButtonState(true, 'Жіберілуде...');
+  
+  try {
+    console.log('Деректер жіберілуде (no-cors):', { name, phone });
+    
+    // No-CORS режимінде жіберу
+    await sendDataNoCors(name, phone);
+    
+    // No-CORS режимінде жауапты оқу мүмкін емес, сондықтан біз әрдайым сәтті деп есептейміз
+    showMessage('Сіздің сұрауыңыз сәтті жіберілді! WhatsApp-қа өтіңіз...', 'success');
+    
+    // WhatsApp-қа бағыттау
+    setTimeout(() => {
+      redirectToWhatsApp(name, phone);
+    }, 1500);
+    
+    // Түймені WhatsApp түймесіне өзгерту
+    setSubmitButtonState(false, `${whatsappIcon} WhatsApp-қа өту`);
+    submitBtn.classList.add('whatsapp-btn');
+    
+    // Түйменің функциясын өзгерту - енді ол WhatsApp-қа бағыттайды
+    submitBtn.onclick = function(e) {
+      e.preventDefault();
+      redirectToWhatsApp(name, phone);
+    };
+    
+    // Форманы тазарту
+    form.reset();
+    
+  } catch(err) {
+    console.error('Қате детальдары:', err);
+    
+    // Нақты қате хабарламасы
+    let errorMessage = 'Деректер жіберілмеді. ';
+    errorMessage += 'Интернет байланысын тексеріңіз немесе кейінірек қайталаңыз.';
+    
+    showMessage(errorMessage, 'error');
+    setSubmitButtonState(false, '<span class="pulse"></span> Жіберу');
+    submitBtn.classList.remove('whatsapp-btn');
+  }
+});
+
+// Хабарламаны көрсету функциясы
+function showMessage(message, type) {
+  msgEl.textContent = message;
+  msgEl.className = type + '-msg';
+  msgEl.style.display = 'block';
+}
+
+// Түйме күйін орнату функциясы
+function setSubmitButtonState(disabled, html) {
+  submitBtn.disabled = disabled;
+  submitBtn.innerHTML = html;
+}
+
+// Бетті жаңартқанда бастапқы күйге қайтару
+window.addEventListener('load', function() {
+  submitBtn.onclick = null; // Басқа функцияларды тазарту
+  submitBtn.type = 'submit'; // Түймені қайтадан submit түріне орнату
+});
+
+// Canvas particles effect
+(function(){
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let w=canvas.width=innerWidth;
+  let h=canvas.height=innerHeight;
+  const particles=[];
+  const mouse={x:-9999,y:-9999};
+  for(let i=0;i<150;i++){
+    particles.push({x:Math.random()*w, y:Math.random()*h, r:Math.random()*6+2, vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5});
+  }
+  window.addEventListener('resize',()=>{w=canvas.width=innerWidth; h=canvas.height=innerHeight;});
+  window.addEventListener('mousemove',e=>{mouse.x=e.clientX; mouse.y=e.clientY;});
+  function loop(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of particles){
+      p.x += p.vx; p.y += p.vy;
+      const dx=p.x-mouse.x; const dy=p.y-mouse.y; const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<100){p.x+=(dx/dist)*2; p.y+=(dy/dist)*2;}
+      if(p.x<0)p.x=w; if(p.x>w)p.x=0; if(p.y<0)p.y=h; if(p.y>h)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+</script>
+</body>
+</html>
